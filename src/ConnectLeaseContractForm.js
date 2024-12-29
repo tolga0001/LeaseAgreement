@@ -1,58 +1,69 @@
 import React, { useState } from 'react';
 import { Contract, utils } from 'ethers';
 
-const ConnectLeaseContractForm = ({ signer, provider }) => {
-    const [contractAddress, setContractAddress] = useState('');
-    const [lotteryContractABI, setLotteryContractABI] = useState('');
-    const [view, setView] = useState('');
-    const [, setGasUsed] = useState(null);
+const ConnectLeaseContractForm = ({ signer, provider, defaultContractAddress, defaultContractABI }) => {
+    const [contractAddress, setContractAddress] = useState(defaultContractAddress || '');
+    const [lotteryContractABI, setLotteryContractABI] = useState(defaultContractABI || '');
     const [randomNumberHash, setRandomNumberHash] = useState('');
+    const [view, setView] = useState('');
     const [owner, setOwner] = useState('');
-    const [isGetContractOwnerPressed, setIsGetContractOwnerPressed] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // Validate input fields
+    const validateFields = () => {
+        if (!contractAddress) {
+            setErrorMessage('Contract Address is required.');
+            return false;
+        }
+        if (!lotteryContractABI) {
+            setErrorMessage('Contract ABI is required.');
+            return false;
+        }
+        return true;
+    };
 
     const connectToDeployedContract = async () => {
-        if (!signer) {
-            alert("Please connect MetaMask first.");
-            return;
+        if (!validateFields()) {
+            return; // Stop if validation fails
         }
+
         setView('connecting');
+        setErrorMessage(''); // Clear previous errors
 
         try {
-            const contract = new Contract(contractAddress, lotteryContractABI, signer);
+            const contract = new Contract(contractAddress, JSON.parse(lotteryContractABI), signer);
 
             // Check if the contract exists at the given address
             const bytecode = await provider.getCode(contractAddress);
             if (bytecode === '0x') {
-                throw new Error("Contract not found at the provided address.");
+                throw new Error('Contract not found at the provided address.');
             }
-            console.log("Contract bytecode successfully retrieved.");
+
+            console.log('Successfully connected to the contract.');
 
             // Fetch and display the contract owner
             const owner = await contract.displayContractOwner();
-            console.log("Contract Owner Address:", owner);
+            console.log('Contract Owner Address:', owner);
             setOwner(owner);
-
-            // Fetch and log the ticket price in Ether
-            const ticketPriceWei = await contract.displayTicketPrice();
-            const ticketPriceEth = utils.formatEther(ticketPriceWei);
-            console.log(`The ticket price is: ${ticketPriceEth} ETH`);
 
             setView('connected');
         } catch (error) {
-            console.error("Error connecting to contract:", error);
+            console.error('Error connecting to contract:', error);
             setView('error');
-            alert("Error connecting to contract: " + error.message);
+            setErrorMessage('Error connecting to contract: ' + error.message);
         }
     };
 
     const purchaseTicket = async () => {
         if (!randomNumberHash) {
-            alert("Please enter a valid random number hash.");
+            setErrorMessage('Random Number Hash is required.');
             return;
         }
 
+        setErrorMessage(''); // Clear previous errors
+
         try {
-            const contract = new Contract(contractAddress, lotteryContractABI, signer);
+            const contract = new Contract(contractAddress, JSON.parse(lotteryContractABI), signer);
             const randomHashBytes32 = utils.formatBytes32String(randomNumberHash);
 
             // Fetch the ticket price
@@ -64,51 +75,63 @@ const ConnectLeaseContractForm = ({ signer, provider }) => {
             });
 
             const receipt = await tx.wait();
-            setGasUsed(receipt.gasUsed.toString());
 
-            console.log(`Gas used: ${receipt.gasUsed.toString()}`);
+            console.log(`Transaction successful. Gas used: ${receipt.gasUsed.toString()}`);
         } catch (error) {
-            console.error("Error purchasing ticket:", error);
-            alert("Error purchasing ticket: " + error.message);
-        } finally {
-            setView('connected');
+            console.error('Error purchasing ticket:', error);
+            setErrorMessage('Error purchasing ticket: ' + error.message);
         }
     };
 
     return (
-        <div>
-            <div style={styles.section}>
-                <h2 style={styles.subHeader}>Connect To Existing Contract</h2>
-                <label style={styles.label}>
-                    Contract Address:
+        <div style={styles.wrapper}>
+            <div style={styles.form}>
+                <h2 style={styles.subHeader}>Connect to Contract</h2>
+
+                {/* Contract Address Input */}
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Contract Address:</label>
                     <input
                         type="text"
                         value={contractAddress}
                         onChange={(e) => setContractAddress(e.target.value)}
                         style={styles.input}
+                        placeholder="Enter contract address"
                     />
-                </label>
+                </div>
 
-                <label style={styles.label}>
-                    Contract ABI:
-                    <textarea
+                {/* Contract ABI Input */}
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Contract ABI:</label>
+                    <input
+                        type="text"
                         value={lotteryContractABI}
                         onChange={(e) => setLotteryContractABI(e.target.value)}
                         style={styles.input}
+                        placeholder="Enter contract ABI as a JSON string"
                     />
-                </label>
+                </div>
 
-                <button onClick={connectToDeployedContract} style={styles.button}>
-                    {view === 'connecting' ? 'Connecting...' : 'Connect to Contract'}
-                </button>
+                {/* Connect Button */}
+                <div style={styles.buttonWrapper}>
+                    <button onClick={connectToDeployedContract} style={styles.button}>
+                        {view === 'connecting' ? 'Connecting...' : 'Connect'}
+                    </button>
+                </div>
+
+                {/* Error Message */}
+                <div style={styles.errorWrapper}>
+                    {errorMessage && <p style={styles.errorText}>{errorMessage}</p>}
+                </div>
             </div>
 
             {view === 'connected' && (
-                <div style={styles.section}>
-                    <p>Successfully connected to the existing contract!</p>
+                <div style={styles.form}>
+                    <p>Successfully connected to the contract!</p>
 
-                    <label style={styles.label}>
-                        Enter Your Random Number Hash (32-byte string):
+                    {/* Random Number Hash Input */}
+                    <div style={styles.inputGroup}>
+                        <label style={styles.label}>Enter Your Random Number Hash (32-byte string):</label>
                         <input
                             type="text"
                             value={randomNumberHash}
@@ -116,30 +139,27 @@ const ConnectLeaseContractForm = ({ signer, provider }) => {
                             style={styles.input}
                             placeholder="Enter hash"
                         />
-                    </label>
+                    </div>
 
+                    {/* Action Buttons */}
                     <div style={styles.buttonWrapper}>
                         <button onClick={purchaseTicket} style={styles.button}>
                             Purchase Ticket
                         </button>
-
                         <button
-                            onClick={() => setIsGetContractOwnerPressed(true)}
+                            onClick={() => setOwner(owner)}
                             style={styles.button}
                         >
                             Get Contract Owner
                         </button>
                     </div>
 
-                    {isGetContractOwnerPressed && (
-                        <p style={styles.ownerText}>Contract owner is {owner}</p>
-                    )}
-                </div>
-            )}
+                    {/* Error Message */}
+                    <div style={styles.errorWrapper}>
+                        {errorMessage && <p style={styles.errorText}>{errorMessage}</p>}
+                    </div>
 
-            {view === 'error' && (
-                <div style={styles.section}>
-                    <p>Error connecting to the contract. Please check the contract address and try again.</p>
+                    {owner && <p style={styles.ownerText}>Contract owner is {owner}</p>}
                 </div>
             )}
         </div>
@@ -147,8 +167,55 @@ const ConnectLeaseContractForm = ({ signer, provider }) => {
 };
 
 const styles = {
-    section: {
+    wrapper: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+    },
+    form: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: '400px',
+        padding: '20px',
+        border: '1px solid #ccc',
+        borderRadius: '10px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    },
+    subHeader: {
+        fontSize: '1.5em',
         marginBottom: '20px',
+        textAlign: 'center',
+    },
+    inputGroup: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        width: '100%',
+        marginBottom: '15px',
+    },
+    label: {
+        fontSize: '1em',
+        marginBottom: '5px',
+        color: '#333',
+    },
+    input: {
+        width: '100%',
+        padding: '10px',
+        fontSize: '1em',
+        border: '1px solid #ccc',
+        borderRadius: '5px',
+        boxSizing: 'border-box',
+    },
+    buttonWrapper: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '10px',
+        width: '100%',
+        marginTop: '20px',
     },
     button: {
         backgroundColor: '#0092D1',
@@ -158,28 +225,18 @@ const styles = {
         borderRadius: '5px',
         cursor: 'pointer',
     },
-    input: {
-        padding: '5px',
-        fontSize: '1em',
-        width: '100%',
-        marginBottom: '10px',
+    errorWrapper: {
+        minHeight: '20px',
+        marginTop: '10px',
+        textAlign: 'center',
     },
-    label: {
-        display: 'block',
-        marginBottom: '5px',
-    },
-    subHeader: {
-        fontSize: '1.5em',
-        marginBottom: '10px',
-    },
-    buttonWrapper: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
+    errorText: {
+        color: 'red',
+        fontSize: '12px',
     },
     ownerText: {
-        marginTop: '10px',
         fontSize: '16px',
+        marginTop: '10px',
     },
 };
 

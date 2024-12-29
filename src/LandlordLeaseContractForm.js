@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import lotteryContractABI from './lotteryContractABI.json';
 
-const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
+const DeployLeaseContractForm = ({ signer, setContract }) => {
     const [tenantName, setTenantName] = useState('');
     const [landlordName, setLandlordName] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
@@ -10,11 +10,11 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
     const [monthlyRent, setMonthlyRent] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [annualRentIncrease, setAnnualRentIncrease] = useState('');
     const [securityDeposit, setSecurityDeposit] = useState('');
     const [agreementSigned, setAgreementSigned] = useState(false);
     const [error, setError] = useState('');
-    const [isDeployed, setIsDeployed] = useState(false);
-    const [, setButtonText] = useState('Deploy');
+    const [deploymentState, setDeploymentState] = useState({ isDeployed: false, isDeploying: false });
     const [deployedAddress, setDeployedAddress] = useState(null);
     const [pdfFile, setPdfFile] = useState(null);
 
@@ -22,29 +22,25 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
         const file = e.target.files[0];
         if (file && file.type === 'application/pdf') {
             setPdfFile(file);
+            setError(''); // Clear error if a valid file is uploaded
         } else {
             setError('Please upload a valid PDF file.');
         }
     };
 
     const handleDeploy = async () => {
-        if (!signer) {
-            alert('Please connect MetaMask first.');
-            return;
-        }
-
-        if (isDeployed) {
-            alert(`The contract is already deployed at address: ${contract.address}`);
+        if (deploymentState.isDeployed) {
+            alert(`The contract has already been deployed to: ${deployedAddress}`);
             return;
         }
 
         if (!tenantName || !landlordName || !propertyAddress || !leaseDuration || !monthlyRent || !startDate || !endDate || !securityDeposit) {
-            setError('Please fill in all fields.');
+            setError('Please complete all fields before deploying the contract.');
             return;
         }
 
         if (!agreementSigned) {
-            setError('Please sign the agreement.');
+            setError('You must agree to the terms to deploy the contract.');
             return;
         }
 
@@ -54,7 +50,7 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
         }
 
         setError('');
-        setButtonText('Deploying...');
+        setDeploymentState({ ...deploymentState, isDeploying: true });
 
         try {
             const leaseContractFactory = new ethers.ContractFactory(
@@ -77,25 +73,28 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
             await leaseContract.deployed();
             setDeployedAddress(leaseContract.address);
             setContract(leaseContract);
-            setIsDeployed(true);
-            setButtonText('Contract Deployed');
-            alert('Contract deployed successfully!');
+            setDeploymentState({ isDeployed: true, isDeploying: false });
+            alert(`Contract deployed successfully! Address: ${leaseContract.address}`);
         } catch (error) {
-            console.error(error);
-            setError('Failed to deploy contract.');
+            console.error('Error deploying contract:', error);
+            setError('Failed to deploy contract. Please try again.');
+            setDeploymentState({ ...deploymentState, isDeploying: false });
         }
     };
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.header}>Lease Agreement</h1>
+            <h1 style={styles.header}>Lease Agreement Deployment For Landlord</h1>
+
             <div style={styles.formContainer}>
-                {!isDeployed ? (
+                {!deploymentState.isDeployed ? (
                     <>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Tenant Name:</label>
+                            <label htmlFor="tenantName" style={styles.label}>Tenant Name:</label>
                             <input
+                                id="tenantName"
                                 type="text"
+                                aria-label="Tenant Name"
                                 value={tenantName}
                                 onChange={(e) => setTenantName(e.target.value)}
                                 style={styles.input}
@@ -103,9 +102,11 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
                         </div>
 
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Landlord Name:</label>
+                            <label htmlFor="landlordName" style={styles.label}>Landlord Name:</label>
                             <input
+                                id="landlordName"
                                 type="text"
+                                aria-label="Landlord Name"
                                 value={landlordName}
                                 onChange={(e) => setLandlordName(e.target.value)}
                                 style={styles.input}
@@ -113,19 +114,35 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
                         </div>
 
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Property Address:</label>
+                            <label htmlFor="propertyAddress" style={styles.label}>Property Address:</label>
                             <input
+                                id="propertyAddress"
                                 type="text"
+                                aria-label="Property Address"
                                 value={propertyAddress}
                                 onChange={(e) => setPropertyAddress(e.target.value)}
                                 style={styles.input}
                             />
                         </div>
+                        <div style={styles.inputGroup}>
+                            <label htmlFor="annualRentIncrease" style={styles.label}>Yearly Rent Increase (%):</label>
+                            <input
+                                id="annualRentIncrease"
+                                type="number"
+                                aria-label="Annual Rent Increase"
+                                value={annualRentIncrease}
+                                onChange={(e) => setAnnualRentIncrease(e.target.value)}
+                                placeholder="e.g., 10"
+                                style={styles.input}
+                            />
+                        </div>
 
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Lease Duration (months):</label>
+                            <label htmlFor="leaseDuration" style={styles.label}>Lease Duration (months):</label>
                             <input
+                                id="leaseDuration"
                                 type="number"
+                                aria-label="Lease Duration"
                                 value={leaseDuration}
                                 onChange={(e) => setLeaseDuration(e.target.value)}
                                 style={styles.input}
@@ -133,52 +150,14 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
                         </div>
 
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Monthly Rent ($):</label>
+                            <label htmlFor="monthlyRent" style={styles.label}>Monthly Rent ($):</label>
                             <input
+                                id="monthlyRent"
                                 type="number"
+                                aria-label="Monthly Rent"
                                 value={monthlyRent}
                                 onChange={(e) => setMonthlyRent(e.target.value)}
                                 style={styles.input}
-                            />
-                        </div>
-
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Start Date:</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                style={styles.input}
-                            />
-                        </div>
-
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>End Date:</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                style={styles.input}
-                            />
-                        </div>
-
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Security Deposit ($):</label>
-                            <input
-                                type="number"
-                                value={securityDeposit}
-                                onChange={(e) => setSecurityDeposit(e.target.value)}
-                                style={styles.input}
-                            />
-                        </div>
-
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>I Agree to the Terms:</label>
-                            <input
-                                type="checkbox"
-                                checked={agreementSigned}
-                                onChange={(e) => setAgreementSigned(e.target.checked)}
-                                style={styles.checkbox}
                             />
                         </div>
 
@@ -187,29 +166,34 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
                             <input
                                 type="file"
                                 accept="application/pdf"
+                                aria-label="Lease Agreement Upload"
                                 onChange={handleFileChange}
                                 style={styles.input}
                             />
-                            {pdfFile && <p>Selected file: {pdfFile.name}</p>}
+                            {pdfFile && <p style={styles.fileInfo}>Selected file: {pdfFile.name}</p>}
                         </div>
 
-                        {error && <div style={styles.error}>{error}</div>}
+                        {error && (
+                            <div style={styles.errorContainer}>
+                                <p style={styles.errorMessage}>{error}</p>
+                            </div>
+                        )}
 
                         <button
                             onClick={handleDeploy}
-                            disabled={isDeployed}
+                            disabled={deploymentState.isDeploying}
                             style={{
                                 ...styles.button,
-                                ...(isDeployed ? styles.buttonDisabled : {}),
+                                ...(deploymentState.isDeploying ? styles.buttonDisabled : {}),
                             }}
                         >
-                            {isDeployed ? 'Deploying...' : 'Deploy Lease Agreement'}
+                            {deploymentState.isDeploying ? 'Deploying...' : 'Deploy Contract'}
                         </button>
                     </>
                 ) : (
-                    <div style={styles.successMessage}>
-                        <h2>Contract Deployed Successfully!</h2>
-                        <p>Contract deployed at: {deployedAddress}</p>
+                    <div style={styles.successContainer}>
+                        <h2>Contract Deployed Successfully</h2>
+                        <p>Contract Address: {deployedAddress}</p>
                         <button
                             onClick={() => window.history.back()}
                             style={styles.button}
@@ -225,75 +209,76 @@ const DeployLeaseContractForm = ({ signer, contract, setContract }) => {
 
 const styles = {
     container: {
+        padding: '16px',
+        backgroundColor: '#f4f4f4',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
-        backgroundColor: '#f7f7f7',
-        fontFamily: 'Arial, sans-serif',
     },
     header: {
-        fontSize: '2.5rem',
-        color: '#333',
+        fontSize: '2rem',
+        color: '#222',
         marginBottom: '20px',
     },
     formContainer: {
-        backgroundColor: 'white',
-        padding: '20px',
+        backgroundColor: '#fff',
+        padding: '24px',
+        width: '95%', // Allows for a bit more space on smaller screens
+        maxWidth: '540px', // Increased maximum width
         borderRadius: '8px',
-        boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '500px',
+        boxShadow: '0 7px 20px rgba(0, 0, 0, 0.15)',
     },
     inputGroup: {
-        marginBottom: '15px',
+        marginBottom: '20px',
     },
     label: {
         fontSize: '1rem',
-        color: '#555',
-        marginBottom: '5px',
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: '8px',
         display: 'block',
     },
     input: {
         width: '100%',
-        padding: '8px',
+        padding: '12px', // Increased padding for improved visuals
         fontSize: '1rem',
-        borderRadius: '5px',
-        border: '1px solid #ccc',
-        boxSizing: 'border-box',
-    },
-    checkbox: {
-        width: '20px',
-        height: '20px',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        outline: 'none',
-        cursor: 'pointer',
-        accentColor: '#0092D1',
-        marginLeft: '10px',
-        transition: 'all 0.3s ease',
+        borderRadius: '6px',
+        border: '1px solid #bbb',
+        boxSizing: 'border-box', // Ensures no overflow due to padding or borders
     },
     button: {
-        backgroundColor: '#1abc9c',
-        color: 'white',
-        padding: '12px 30px',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
+        width: '100%',
+        padding: '14px', // Bigger button for better interaction
         fontSize: '1.1rem',
-        transition: 'all 0.3s ease',
+        backgroundColor: '#4CAF50',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s',
     },
     buttonDisabled: {
-        backgroundColor: '#ccc',
+        backgroundColor: '#aaa',
         cursor: 'not-allowed',
     },
-    error: {
-        color: 'red',
-        marginBottom: '15px',
-    },
-    successMessage: {
+    successContainer: {
         textAlign: 'center',
+    },
+    errorContainer: {
+        padding: '12px', // Increased padding for better spacing
+        backgroundColor: '#fdecea',
+        borderRadius: '8px',
+        marginBottom: '20px',
+    },
+    errorMessage: {
+        color: '#d32f2f',
+        fontSize: '0.9rem',
+    },
+    fileInfo: {
+        fontSize: '0.9rem',
+        color: '#444',
     },
 };
 
