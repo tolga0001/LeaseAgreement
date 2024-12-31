@@ -89,7 +89,7 @@ contract RentalNFT is ERC721, Ownable {
         require(!agreement.tenantAccepted, "Agreement already accepted");
         delete rentalAgreements[rentalAgrementId];
         rentalAgrementId--;
-        agreement.tenantAccepted = false;
+        
     }
 
     function acceptRentalAgreement(uint256 _rentalAgrementId) external {
