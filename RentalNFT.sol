@@ -18,7 +18,7 @@ contract RentalNFT is ERC721, Ownable {
     uint256 public constant PAYMENT_GRACE_PERIOD = 60 days; // 2 months
     uint256 public constant WARNING_THRESHOLD = 30 days; // 1 month
     uint256 public nextTokenId = 1; // specify id of the NFT to be created (Bunu bu arada istedigimiz degerden baslatabiliriz herhangi bir sorun yok)
-    uint256 public rentalAgrementId = 1; // it starts from 1 and Incremented  when new agrement is created.
+    uint256 public rentalAgreementId = 1; // it starts from 1 and Incremented  when new agrement is created.
 
     mapping(uint256 => RentalAgreement) public rentalAgreements;
     mapping(address => uint256) public tenantToNFT; // it shows that tenant and tenansts NFT ID
@@ -56,7 +56,7 @@ contract RentalNFT is ERC721, Ownable {
     // bunun icinde belki landlord arrayi gibi bir sey olusturabiliriz 
     // burada ownable olmayacak buyuk ihtimalle (ev sahipleri cagirabilecek sadece)
     function createRentalAgreement(address tenant, uint256 rentAmount) external {
-        require(landlord[msg.sender] == true , "Only landloard create rental agrement." );
+        require(landlord[msg.sender] == true , "Only landlord create rental agrement." );
         require(tenant != address(0), "Invalid tenant address");
         require(rentAmount > 0, "Rent amount must be greater than zero");
 
@@ -65,7 +65,7 @@ contract RentalNFT is ERC721, Ownable {
 
         _safeMint(msg.sender, tokenId); // creating nft and sending to msg.sender 
 
-        rentalAgreements[rentalAgrementId] = RentalAgreement({
+        rentalAgreements[rentalAgreementId] = RentalAgreement({
             landlord: msg.sender,
             tenant: tenant,
             rentAmount: rentAmount,
@@ -74,26 +74,26 @@ contract RentalNFT is ERC721, Ownable {
             tenantAccepted: false,
             warningSent: false
         });
-        // rental agrement id 1 artarak gidiyor ..
-        rentalAgrementId++;
+        // rental agreement id 1 artarak gidiyor ..
+        rentalAgreementId++;
         approve(tenant,tokenId);  // kiraci yetki veriyoruz ... 
 
-        emit RentalAgreementCreated(rentalAgrementId, msg.sender, tenant, rentAmount);
+        emit RentalAgreementCreated(rentalAgreementId, msg.sender, tenant, rentAmount);
     }
 
 
-    function refuseRentalAgreement(uint256 _rentalAgrementId) external {
+    function refuseRentalAgreement(uint256 _rentalAgreementId) external {
 
-        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgreementId];
         require(agreement.tenant == msg.sender, "Caller is not the tenant");
         require(!agreement.tenantAccepted, "Agreement already accepted");
-        delete rentalAgreements[rentalAgrementId];
-        rentalAgrementId--;
+        delete rentalAgreements[rentalAgreementId];
+        rentalAgreementId--;
         
     }
 
-    function acceptRentalAgreement(uint256 _rentalAgrementId) external {
-        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+    function acceptRentalAgreement(uint256 _rentalAgreementId) external {
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgreementId];
         require(agreement.tenant == msg.sender, "Caller is not the tenant");
         require(!agreement.tenantAccepted, "Agreement already accepted");
 
@@ -131,8 +131,8 @@ contract RentalNFT is ERC721, Ownable {
 
     // bu fonksiyonuda sadece ev sahipleri cagirabilir ona gore modifiye etmek lazim 
 
-    function sendWarning(uint256 _rentalAgrementId) external {
-        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+    function sendWarning(uint256 _rentalAgreementId) external {
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgreementId];
         require(msg.sender == agreement.landlord, "Only the landlord can send warnings");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
         require(block.timestamp > agreement.lastPaidDate + WARNING_THRESHOLD, "Warning threshold not reached");
