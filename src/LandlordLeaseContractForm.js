@@ -277,18 +277,78 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
 };
 
 const styles = {
-    container: { maxWidth: '600px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' },
-    header: { fontSize: '24px', textAlign: 'center', marginBottom: '20px' },
-    formContainer: { padding: '20px', border: '1px solid #ccc', borderRadius: '8px' },
-    inputGroup: { marginBottom: '15px' },
-    label: { display: 'block', marginBottom: '5px', fontWeight: 'bold' },
-    input: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' },
-    textarea: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', height: '80px' },
-    button: { backgroundColor: '#007BFF', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-    buttonDisabled: { backgroundColor: '#aaa', cursor: 'not-allowed' },
-    checkboxGroup: { marginBottom: '20px' },
-    error: { color: 'red', marginBottom: '10px' },
-    successContainer: { textAlign: 'center', color: 'green' },
+    container: {
+        padding: '16px',
+        backgroundColor: '#f4f4f4',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    header: {
+        fontSize: '2rem',
+        color: '#222',
+        marginBottom: '20px',
+    },
+    formContainer: {
+        backgroundColor: '#fff',
+        padding: '24px',
+        width: '95%', // Allows for a bit more space on smaller screens
+        maxWidth: '540px', // Increased maximum width
+        borderRadius: '8px',
+        boxShadow: '0 7px 20px rgba(0, 0, 0, 0.15)',
+    },
+    inputGroup: {
+        marginBottom: '20px',
+    },
+    label: {
+        fontSize: '1rem',
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: '8px',
+        display: 'block',
+    },
+    input: {
+        width: '100%',
+        padding: '12px', // Increased padding for improved visuals
+        fontSize: '1rem',
+        borderRadius: '6px',
+        border: '1px solid #bbb',
+        boxSizing: 'border-box', // Ensures no overflow due to padding or borders
+    },
+    button: {
+        width: '100%',
+        padding: '14px', // Bigger button for better interaction
+        fontSize: '1.1rem',
+        backgroundColor: '#4CAF50',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s',
+    },
+    buttonDisabled: {
+        backgroundColor: '#aaa',
+        cursor: 'not-allowed',
+    },
+    successContainer: {
+        textAlign: 'center',
+    },
+    errorContainer: {
+        padding: '12px', // Increased padding for better spacing
+        backgroundColor: '#fdecea',
+        borderRadius: '8px',
+        marginBottom: '20px',
+    },
+    errorMessage: {
+        color: '#d32f2f',
+        fontSize: '0.9rem',
+    },
+    fileInfo: {
+        fontSize: '0.9rem',
+        color: '#444',
+    },
 };
 
 export default DeployLeaseContractForm;

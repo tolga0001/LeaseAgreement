@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ethers } from 'ethers';
 
-function MetaMaskConnectionPage() {
+function MetaMaskConnectPage({
+                                 setIsConnected,
+                                 setAccount,
+                                 setProvider,
+                                 setSigner,
+                             }) {
     const [error, setError] = useState(null);
     const [isConnecting, setIsConnecting] = useState(false);
     const navigate = useNavigate();
@@ -9,24 +15,43 @@ function MetaMaskConnectionPage() {
     const connectMetaMask = async () => {
         try {
             setIsConnecting(true);
-            const provider = window.ethereum;
+            const provider = window.ethereum; // MetaMask provider instance
 
             if (!provider) {
                 throw new Error('MetaMask is not installed. Please install it to continue.');
             }
 
+            // Request accounts from MetaMask
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
 
             if (accounts.length === 0) {
-                throw new Error('No accounts found. Please add your account in MetaMask.');
+                throw new Error('No accounts found. Please add an account in MetaMask and try again.');
             }
 
+            // Save provider and create signer
+            const web3Provider = new ethers.providers.Web3Provider(provider);
+            const signer = web3Provider.getSigner();
+
+            // Log provider, signer, and account in console
+            console.log('Provider:', web3Provider);
+            console.log('Signer:', signer);
+            console.log('Connected Account:', accounts[0]);
+
+            // Set the state
+            setProvider(web3Provider);
+            setSigner(signer);
+            setAccount(accounts[0]);
+            setIsConnected(true);
+
+            // Clear errors
             setError(null);
             setIsConnecting(false);
+
             return true;
         } catch (err) {
             setError(err.message);
             setIsConnecting(false);
+            setIsConnected(false); // Ensure connection status is false on error
             return false;
         }
     };
@@ -34,7 +59,7 @@ function MetaMaskConnectionPage() {
     const handleButtonClick = async () => {
         const isConnected = await connectMetaMask();
         if (isConnected) {
-            navigate('/home');
+            navigate('/home'); // Navigate to the home page on successful connection
         }
     };
 
@@ -118,4 +143,4 @@ const styles = {
     },
 };
 
-export default MetaMaskConnectionPage;
+export default MetaMaskConnectPage;

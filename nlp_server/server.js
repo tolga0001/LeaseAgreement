@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const openai = new OpenAI({
-    apiKey: 'sk-proj-808edMu01***********', // Replace with your actual OpenAI API key
+    apiKey: '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', // Replace with your actual OpenAI API key
 });
 
 // Route to handle GPT-4 requests
