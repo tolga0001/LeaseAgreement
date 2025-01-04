@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
-import lotteryContractABI from './lotteryContractABI.json';
+
 
 const DeployLeaseContractForm = ({ signer, setContract }) => {
     const [tenantName, setTenantName] = useState('');
@@ -50,36 +50,8 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
         }
 
         setError('');
-        setDeploymentState({ ...deploymentState, isDeploying: true });
+        //setDeploymentState({ ...deploymentState, isDeploying: true });
 
-        try {
-            const leaseContractFactory = new ethers.ContractFactory(
-                lotteryContractABI,
-                "YOUR_CONTRACT_BYTECODE", // Replace with actual contract bytecode
-                signer
-            );
-
-            const leaseContract = await leaseContractFactory.deploy(
-                tenantName,
-                landlordName,
-                propertyAddress,
-                leaseDuration,
-                monthlyRent,
-                startDate,
-                endDate,
-                securityDeposit
-            );
-
-            await leaseContract.deployed();
-            setDeployedAddress(leaseContract.address);
-            setContract(leaseContract);
-            setDeploymentState({ isDeployed: true, isDeploying: false });
-            alert(`Contract deployed successfully! Address: ${leaseContract.address}`);
-        } catch (error) {
-            console.error('Error deploying contract:', error);
-            setError('Failed to deploy contract. Please try again.');
-            setDeploymentState({ ...deploymentState, isDeploying: false });
-        }
     };
 
     return (

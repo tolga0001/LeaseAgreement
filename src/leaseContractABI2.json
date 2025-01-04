@@ -1,6 +1,13 @@
 [
   {
     "inputs": [],
+    "name": "activateContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "claimPrize",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -24,11 +31,11 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "randomNumber",
         "type": "uint256"
       }
     ],
-    "name": "deposit",
+    "name": "purchaseTicket",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -36,14 +43,14 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "_randomNumberHash",
-        "type": "bytes32"
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
       }
     ],
-    "name": "purchaseTicket",
+    "name": "removeParticipant",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -60,13 +67,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "transferMoneyToWinner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -75,7 +75,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_decideDuration",
+        "name": "_revealDuration",
         "type": "uint256"
       }
     ],
@@ -117,32 +117,6 @@
   },
   {
     "inputs": [],
-    "name": "decideEnd",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "decideStart",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "displayContractOwner",
     "outputs": [
       {
@@ -156,7 +130,46 @@
   },
   {
     "inputs": [],
+    "name": "displayCurrentTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "displayTicketPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getContractStatus",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getValue",
     "outputs": [
       {
         "internalType": "uint256",
@@ -242,7 +255,20 @@
   },
   {
     "inputs": [],
-    "name": "randomSeed",
+    "name": "revealEnd",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "revealStart",
     "outputs": [
       {
         "internalType": "uint256",
