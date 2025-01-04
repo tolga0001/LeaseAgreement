@@ -2,7 +2,9 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-# PDF Information Extraction tools on frontend side depends on NLP Server, it should be run seperately on different port and should be used as API.
+## PDF Information Extraction tools on frontend side depends on NLP Server, server.js file on NLP Server should be run seperately on different port and should be used as API. Run NLP Server before main app:
+
+### 'npm start server.js'
 
 ## Available Scripts
 
