@@ -222,15 +222,16 @@ contract RentalNFT is ERC721, Ownable {
         require(block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange , "Warning threshold not reached");
         
         agreement.warningcount++;
-        agreement.firstWarningTime = block.timestamp;
-
+        
         // burayi test et dogru mu diye 
         // for second warning 
+        // burada sacma sekilde hata aliyorum benim logicte mi hata var SIKECEM AZ KALDI 
         if(agreement.firstWarningSent == true){
             
-            require((block.timestamp >= agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange &&
-            block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange) , "You can not send 2. warning before the warning threshold reached...");
+            require(block.timestamp >= agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange &&
+            block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange,"You can not send 2. warning before the warning threshold reached...");
         }
+        agreement.firstWarningTime = block.timestamp;
         // after first warning 
         agreement.firstWarningSent = true;
         uint256 tokenId = agreement.nftId; // getting tokenID 
@@ -281,7 +282,7 @@ contract RentalNFT is ERC721, Ownable {
 
     function showSecondThresholdEndTime(uint256 _rentalAgrementId) public view returns(uint256){
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
-        return agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange;
+        return (agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange);
     }
 
     
