@@ -42,9 +42,9 @@ contract RentalNFT is ERC721, Ownable {
 
     // bunlari sure  saniye olarak ayarlayacagiz 
     
-    uint256 public constant WARNING_THRESHOLD = 90 seconds; // 1 month
+    uint256 public constant WARNING_THRESHOLD = 60 seconds; // 1 month
     // kirayi max ne kadar sure gectiktan sonra odeyebilir 
-    uint256 public constant paymentRange = 45 seconds;
+    uint256 public constant paymentRange = 30 seconds;
     uint256 public nextTokenId = 1; // specify id of the NFT to be created (Bunu bu arada istedigimiz degerden baslatabiliriz herhangi bir sorun yok)
     uint256 public rentalAgrementId = 1; // it starts from 1 and Incremented  when new agrement is created.
 
@@ -52,6 +52,7 @@ contract RentalNFT is ERC721, Ownable {
     mapping(address => uint256) public tenantToAgreementId; // it shows that tenant and tenansts NFT ID
     mapping(address => bool) public  landlords; // holds the landlords 
     mapping(address => bool) public  tenants; // holds the landlords 
+
 
      
     // first landloard needs to be added to this dictionary to create rental agrement 
@@ -92,6 +93,15 @@ contract RentalNFT is ERC721, Ownable {
         _;
     }
 
+
+    function increaseRentEndOfPeriod(uint256 _rentalAgrementId) public view  onlyLandLord{
+
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId]; 
+       require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+       require(agreement.landlord == msg.sender, "You are not landlord in this rental agreement.");
+
+
+    }
     // landlord creates rental agreement 
     function createRentalAgreement(address tenant,
      string memory _landlordName , string memory _tenantName, string memory _propertyAddress,
@@ -225,13 +235,14 @@ contract RentalNFT is ERC721, Ownable {
         
         // burayi test et dogru mu diye 
         // for second warning 
-        // burada sacma sekilde hata aliyorum benim logicte mi hata var SIKECEM AZ KALDI 
+      
         if(agreement.firstWarningSent == true){
             
             require(block.timestamp >= agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange &&
             block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange,"You can not send 2. warning before the warning threshold reached...");
         }
         agreement.firstWarningTime = block.timestamp;
+        
         // after first warning 
         agreement.firstWarningSent = true;
         uint256 tokenId = agreement.nftId; // getting tokenID 
