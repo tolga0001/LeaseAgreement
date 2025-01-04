@@ -24,7 +24,9 @@ contract RentalNFT is ERC721, Ownable {
         uint256 lastPaidDate;
         uint256 nftId;
         bool tenantAccepted;
-        bool warningSent;
+        bool firstWarningSent;
+        uint256 firstWarningTime;
+        uint256 secondWarningTime;
         uint256 warningcount; // landlord can get NFT back if tenant gets 2 warning(which means tenant did not pay rent for 2 months)
         //  ihtar sayisi 2 oldugunda ev sahibi kiraciya tahliye etme yetkisi verecek 
         bool isTenantNotified;
@@ -39,8 +41,10 @@ contract RentalNFT is ERC721, Ownable {
     }
 
     // bunlari sure  saniye olarak ayarlayacagiz 
-    uint256 public constant PAYMENT_GRACE_PERIOD = 60 days; // 2 months
-    uint256 public constant WARNING_THRESHOLD = 30 days; // 1 month
+    
+    uint256 public constant WARNING_THRESHOLD = 90 seconds; // 1 month
+    // kirayi max ne kadar sure gectiktan sonra odeyebilir 
+    uint256 public constant paymentRange = 45 seconds;
     uint256 public nextTokenId = 1; // specify id of the NFT to be created (Bunu bu arada istedigimiz degerden baslatabiliriz herhangi bir sorun yok)
     uint256 public rentalAgrementId = 1; // it starts from 1 and Incremented  when new agrement is created.
 
@@ -119,9 +123,11 @@ contract RentalNFT is ERC721, Ownable {
             lastPaidDate: 0,
             nftId: tokenId,
             tenantAccepted: false,
-            warningSent: false,
+            firstWarningSent: false,
             warningcount:0,
             isTenantNotified:false,
+            firstWarningTime:0,
+            secondWarningTime:0,
             rentalagreementui: rentalagreementui
 
         });
@@ -188,10 +194,11 @@ contract RentalNFT is ERC721, Ownable {
         require(agreement.tenant == msg.sender, "You are not tenant in this agrement!");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
         require(msg.value == agreement.rentalagreementui.monthlyRent, "Incorrect rent amount!");
-        
-
-        // tenant can not pay rent before 1 month passed. 
-        //require(block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD,"You are not in the payment range..");
+    
+        // tenant can not pay rent before 1 month passed and tenant needs to pay in payment range. 
+        // burada soyle bir durum var her ay surekli degisiyor 
+        require((block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD && block.timestamp <= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange),
+        "You are not in the payment range..");
         agreement.lastPaidDate = block.timestamp;
 
          // sending rent money to landlord for 
@@ -199,8 +206,6 @@ contract RentalNFT is ERC721, Ownable {
         require(_landlord != address(0), "Invalid landlord address");
         _landlord.transfer(msg.value);
         // payable(agreement.landlord).transfer(msg.value);
-
-        agreement.warningSent = false; // Reset warning if rent is paid
 
         emit RentPaid(_rentalAgreementId, msg.sender, msg.value);
     }
@@ -212,11 +217,22 @@ contract RentalNFT is ERC721, Ownable {
         require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
         require(msg.sender == agreement.landlord, "You are not landlord in this rental agreement.");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
-        // bu kisimda calisacak test icin sildim sadece 
-        // require(block.timestamp > agreement.lastPaidDate + WARNING_THRESHOLD, "Warning threshold not reached");
-        require(!agreement.warningSent, "Warning already sent");
+        
+        // landlord can not send warning before warning threshold not reached 
+        require(block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange , "Warning threshold not reached");
+        
+        agreement.warningcount++;
+        agreement.firstWarningTime = block.timestamp;
 
-        agreement.warningSent = true;
+        // burayi test et dogru mu diye 
+        // for second warning 
+        if(agreement.firstWarningSent == true){
+            
+            require((block.timestamp >= agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange &&
+            block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange) , "You can not send 2. warning before the warning threshold reached...");
+        }
+        // after first warning 
+        agreement.firstWarningSent = true;
         uint256 tokenId = agreement.nftId; // getting tokenID 
         emit WarningSent(tokenId, msg.sender, agreement.tenant); // sending message 
     }
@@ -224,11 +240,12 @@ contract RentalNFT is ERC721, Ownable {
     // landlord get nft from tenant if tenant gets 2 warning (which means that tenant did not pay rent for 2 months )
     function revokeUsageRights(uint256 _rentalAgrementId) external  onlyLandLord {
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+        
         require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
         require(msg.sender == agreement.landlord, "You are not landlord in this rental agreement.");
-        // bu kisimda eklenecek test icin eklemedim 
-       // require(block.timestamp > agreement.lastPaidDate + PAYMENT_GRACE_PERIOD, "Grace period has not expired");
-
+        // landlord can not get back NFT without warningcount  has not reached 2 
+        require(agreement.warningcount == 2 , "The landlord cannot take back the NFT before the number of warnings reaches 2.!!");
+        
         address tenant = agreement.tenant;
         uint256 tokenId = agreement.nftId;
         
@@ -246,6 +263,25 @@ contract RentalNFT is ERC721, Ownable {
     // overreding approve function which is defined ERC721 according to my needs 
     function approve(address to, uint256 tokenId , address from) public virtual {
         _approve(to, tokenId, from);
+    }
+
+    // show current time 
+    function showCurrentTime() public view returns(uint256){
+        return block.timestamp;
+    }
+
+    function showThresholdStartTime(uint256 _rentalAgrementId) public view returns(uint256){
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+        return agreement.lastPaidDate + WARNING_THRESHOLD;
+    }
+    function showThresholdEndTime(uint256 _rentalAgrementId) public view returns(uint256){
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+        return agreement.lastPaidDate + WARNING_THRESHOLD + paymentRange;
+    }
+
+    function showSecondThresholdEndTime(uint256 _rentalAgrementId) public view returns(uint256){
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
+        return agreement.firstWarningTime + WARNING_THRESHOLD + paymentRange;
     }
 
     
