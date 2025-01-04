@@ -30,7 +30,7 @@ function HomePage({ role, setRole }) {
                         <h2 style={{ ...styles.roleHeader, color: '#5BC0EB' }}>Welcome, Tenant</h2>
                         <p style={styles.roleDescription}>Choose one of the available actions:</p>
                         <div style={styles.actionButtonContainer}>
-                            <Link to="/tenant/leaseContractDeployForm" state={{ role }}>
+                            <Link to="/deployContract" state={{ role }}>
                                 <button style={styles.tenantActionButton}>
                                     Deploy Lease Contract
                                 </button>
@@ -38,6 +38,11 @@ function HomePage({ role, setRole }) {
                             <Link to="/tenant/leaseContractConnectForm" state={{ role }}>
                                 <button style={styles.tenantActionButton}>
                                     Connect to Existing Lease Contract
+                                </button>
+                            </Link>
+                            <Link to="/tenant/leaseContractForm" state={{ role }}>
+                                <button style={styles.tenantActionButton}>
+                                    Create Lease Contract Form
                                 </button>
                             </Link>
                             <button style={styles.tenantActionButton}>
@@ -53,11 +58,16 @@ function HomePage({ role, setRole }) {
                         <h2 style={{ ...styles.roleHeader, color: '#FF6F61' }}>Welcome, Landlord</h2>
                         <p style={styles.roleDescription}>Choose one of the available actions:</p>
                         <div style={styles.actionButtonContainer}>
-                            <Link to="/landlord/leaseContractDeployForm">
-                                <button style={styles.landlordActionButton}>Deploy Lease Contract</button>
+                            <Link to="/deployContract">
+                                <button style={styles.landlordActionButton}>
+                                    Deploy Lease Contract
+                                </button>
                             </Link>
                             <Link to="/landlord/leaseContractConnectForm">
                                 <button style={styles.landlordActionButton}>Connect to Existing Lease Contract</button>
+                            </Link>
+                            <Link to="/landlord/leaseContractForm">
+                                <button style={styles.landlordActionButton}>Create A Lease Contract</button>
                             </Link>
                         </div>
                     </div>

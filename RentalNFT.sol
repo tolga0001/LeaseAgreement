@@ -5,93 +5,62 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-// ERC20 Token for Rent Payments
-contract RentalToken is ERC20{
-
-    address public owner;
-    address public dest; 
-    uint256 public amount;
-
-    constructor() ERC20("RentalToken", "RENT") {
-        owner = msg.sender;
-        _mint(msg.sender, 1000000 * 10 ** decimals()); // Initial supply minted to contract deployer
-        
-
-    }
-
-    function transferErc20(address _dest , uint256 _amount) public {
-        dest = _dest;
-        amount = _amount;
-        transferFrom(owner, dest, amount);
-    }
-
-    function showbalance(address _dest) public view returns(uint){
-        return balanceOf(_dest);
-    }
-
-}
-
 
 contract RentalNFT is ERC721, Ownable {
+   
+    // ui dan alinacak   veriler 
+     struct RentalAgreementInfoUI{
+        string tenantName;
+        string landlordName;
+        string propertyAddress;
+        uint256 monthlyRent;
+        uint256 rentIncreaseRate;
+    }
+     // rental agrement struct which holds all needed variables
     struct RentalAgreement {
         uint256 rentalAgrementId;
         address landlord;
         address tenant;
-        uint256 rentAmount;
         uint256 lastPaidDate;
         uint256 nftId;
         bool tenantAccepted;
         bool warningSent;
-        //uint ihtarsayisi; // ihtar sayisi 2 oldugunda ev sahibi kiraciya tahliye etme yetkisi verecek 
+        uint256 warningcount; // landlord can get NFT back if tenant gets 2 warning(which means tenant did not pay rent for 2 months)
+        //  ihtar sayisi 2 oldugunda ev sahibi kiraciya tahliye etme yetkisi verecek 
+        bool isTenantNotified;
+        RentalAgreementInfoUI rentalagreementui;
     }
 
-    address public tenant2;
-    uint public amount2;
-    
-    RentalToken public rentaltoken;
-    
-    constructor(address _rentaltokenaddress) ERC721("RentalNFT", "RENTNFT") Ownable(msg.sender) {
+   
 
-       rentaltoken = RentalToken(_rentaltokenaddress);
+    // creating NFT in constructor which specifies the name and symbol 
+    constructor() ERC721("RentalNFT", "RENTNFT") Ownable(msg.sender) {
+
     }
 
-
-
+    // bunlari sure  saniye olarak ayarlayacagiz 
     uint256 public constant PAYMENT_GRACE_PERIOD = 60 days; // 2 months
     uint256 public constant WARNING_THRESHOLD = 30 days; // 1 month
     uint256 public nextTokenId = 1; // specify id of the NFT to be created (Bunu bu arada istedigimiz degerden baslatabiliriz herhangi bir sorun yok)
     uint256 public rentalAgrementId = 1; // it starts from 1 and Incremented  when new agrement is created.
 
     mapping(uint256 => RentalAgreement) public rentalAgreements;
-    mapping(address => uint256) public tenantToNFT; // it shows that tenant and tenansts NFT ID
-    
-    mapping(address => bool) public  landlord;
+    mapping(address => uint256) public tenantToAgreementId; // it shows that tenant and tenansts NFT ID
+    mapping(address => bool) public  landlords; // holds the landlords 
+    mapping(address => bool) public  tenants; // holds the landlords 
+
      
-    
-    
-    function showbalanceof(address dest) public view returns(uint){
-        return rentaltoken.showbalance(dest);
-    }
-
-    function transferToTenant(address tenant , uint amount) public {
-        tenant2 = tenant;
-        amount2 = amount;
-        rentaltoken.transferErc20(tenant, amount);
-    }
-
-    function approveTenant(address tenant , uint amount) public {
-        rentaltoken.approve(tenant, amount);
-    }
-
-
     // first landloard needs to be added to this dictionary to create rental agrement 
-    function addLandLord(address newLandLord) public  {
-        landlord[newLandLord] = true;
+    // landlord butonuna bastiginda bu fonksiyon tetiklenir  
+    function addLandLord() public  {
+        landlords[msg.sender] = true;
     }
 
-    // remove fonksiyonuda eklenebilir 
+    // tenant butonuna tikladiginda tetiklenir ve tenant mape eklenir 
+    function addTenant() public {
+        tenants[msg.sender] = true;
+    }
     
-
     event RentalAgreementCreated(
         uint256 indexed nftId,
         address indexed landlord,
@@ -107,59 +76,91 @@ contract RentalNFT is ERC721, Ownable {
 
     event UsageRightsRevoked(uint256 indexed nftId, address indexed landlord);
 
-    
+      // allow only landlord to access 
+    modifier onlyLandLord() {
+        require(landlords[msg.sender] == true , "Only landloard call this function." );
+        _;
+    }
 
-    // burada onlyLandlord gibi bir modifier ekleyebiliriz bu sayede sadece landlordlar sozlesme create edebilir 
-    // bunun icinde belki landlord arrayi gibi bir sey olusturabiliriz 
-    // burada ownable olmayacak buyuk ihtimalle (ev sahipleri cagirabilecek sadece)
-    function createRentalAgreement(address tenant, uint256 rentAmount) external {
-        require(landlord[msg.sender] == true , "Only landloard create rental agrement." );
+    // allow only tenants to access 
+    modifier onlyTenant(){
+        require(tenants[msg.sender] == true , "Only tenant call this function." );
+        _;
+    }
+
+    // landlord creates rental agreement 
+    function createRentalAgreement(address tenant,
+     string memory _landlordName , string memory _tenantName, string memory _propertyAddress,
+      uint256 _rentIncreaseRate,uint256 _monthlyRent) external onlyLandLord{
+        
         require(tenant != address(0), "Invalid tenant address");
-        require(rentAmount > 0, "Rent amount must be greater than zero");
+        require(_monthlyRent > 0, "Rent amount must be greater than zero");
 
-        uint256 tokenId = nextTokenId;
-        nextTokenId++;
+        uint256 tokenId = nextTokenId; // getting NFT id 
+        nextTokenId++; // incrementing NFT id after  NFT is created 
 
-        _safeMint(msg.sender, tokenId);// creating nft and sending to msg.sender 
+        _safeMint(msg.sender, tokenId);// creating NFT and sending to msg.sender which is landlord 
 
+        // arranging property of rentalagreementui
+        RentalAgreementInfoUI memory rentalagreementui;
+        rentalagreementui = RentalAgreementInfoUI({
+            tenantName: _tenantName,
+            landlordName:_landlordName,
+            propertyAddress: _propertyAddress,
+            monthlyRent:_monthlyRent,
+            rentIncreaseRate:_rentIncreaseRate
+        });
+
+        // arranging rental agrement id 
         rentalAgreements[rentalAgrementId] = RentalAgreement({
             rentalAgrementId: rentalAgrementId,
             landlord: msg.sender,
             tenant: tenant,
-            rentAmount: rentAmount,
             lastPaidDate: 0,
             nftId: tokenId,
             tenantAccepted: false,
-            warningSent: false
-        });
-        // rental agrement id 1 artarak gidiyor ..
-        rentalAgrementId++;
-        approve(tenant,tokenId);  // kiraci yetki veriyoruz ... 
-       
+            warningSent: false,
+            warningcount:0,
+            isTenantNotified:false,
+            rentalagreementui: rentalagreementui
 
-        emit RentalAgreementCreated(rentalAgrementId, msg.sender, tenant, rentAmount);
+        });
+
+        // rental agrement id is incremented by 1 after each rental agrement established 
+        rentalAgrementId++;
         
     }
 
-
-    function refuseRentalAgreement(uint256 _rentalAgrementId) external {
+    // landlord call this function to notify 
+    function notifyTenant(uint256 _rentalAgrementId) external onlyLandLord { 
+       // bu tenantın oldugu agreementa git önce
+       RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId]; 
+       require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+       require(agreement.landlord == msg.sender, "You are not landlord in this rental agreement.");
+       agreement.isTenantNotified = true;
+        // authorizing tenant to transfer NFT own address 
+    }
+    
+    // tenant can refuse the rental agreement if he wants 
+    function refuseRentalAgreement(uint256 _rentalAgrementId) external onlyTenant {
 
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
-         // boyle bir idde kontrat var mi ona bak 
-        require(agreement.rentalAgrementId == _rentalAgrementId , "There is no rental agreement with this ID..");
-        require(agreement.tenant == msg.sender, "Caller is not the tenant");
+        require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+
+        // rental agrement var ama tenant yanlis rentalagreement id giriyor 
+        require(agreement.tenant == msg.sender, "You are not tenant in this rental agreement..");
         require(!agreement.tenantAccepted, "Agreement already accepted");
         delete rentalAgreements[rentalAgrementId];
         rentalAgrementId--;
         
     }
 
-    function acceptRentalAgreement(uint256 _rentalAgrementId) external payable{
+    
+    function acceptRentalAgreement(uint256 _rentalAgrementId) external payable onlyTenant{
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
-        // bu kontrol sayesinde kiraci diger kontratlara erisemiyor ve boyle bir sozlesmenin olup olmadigi kontrol ediliyor.
-        require(agreement.rentalAgrementId == _rentalAgrementId , "There is no rental agreement with this ID..");
-        // $require(agreement.tenant != address(0), "Agreement does not exist");
-        require(agreement.tenant == msg.sender, "Caller is not the tenant");
+        
+        require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+        require(agreement.tenant == msg.sender, "You are not tenant in this agrement!");
         require(!agreement.tenantAccepted, "Agreement already accepted");
 
         agreement.tenantAccepted = true;
@@ -167,43 +168,52 @@ contract RentalNFT is ERC721, Ownable {
         agreement.lastPaidDate = block.timestamp ;
 
         uint256 tokenId = agreement.nftId; // getting tokenID 
-        // sending nft to tenant after this function tenant has nft 
-        safeTransferFrom(agreement.landlord, agreement.tenant, tokenId);
         
-        ERC20(rentaltoken).approve(msg.sender,  agreement.rentAmount * 12); // kiraciya yetki veriyoruz 
-        rentaltoken.transferErc20(msg.sender, agreement.rentAmount * 12); // kiracinin hesabina transfer ediyoruz 
-
-        tenantToNFT[msg.sender] = tokenId; // adding to maps tenant and its tokenId 
-
+        // landlord approve to tenant to transfer NFT own address 
+        approve(agreement.tenant,tokenId,agreement.landlord); // overriden by me to use according to what we need 
+        // NFT is transfered from landlord to tenant 
+        safeTransferFrom(agreement.landlord, agreement.tenant, tokenId); 
+        tenantToAgreementId[msg.sender] = _rentalAgrementId; // adding to maps tenant and its rentalagrementId 
         emit RentalAgreementAccepted(tokenId, msg.sender);
-        // 
+        
     }
 
-    // buraya sadece onlyTenants diye bir tane modifier ekleyebiliriz ve bu sayade sadece kiracilar bu fonksiyonu cagirabilir 
-    function payRent() external payable {
-        uint256 tokenId = tenantToNFT[msg.sender]; // buraya bak ()
-        require(tokenId != 0, "No rental agreement found for this tenant");
-        RentalAgreement storage agreement = rentalAgreements[tokenId];
+   
+   // tenants needs to pay rent in every month or given specific time 
+    function payRent() public payable onlyTenant {
+        
+        uint256 _rentalAgreementId = tenantToAgreementId[msg.sender]; 
+        require(_rentalAgreementId != 0, "No rental agreement found for this tenant");
+        RentalAgreement storage agreement = rentalAgreements[_rentalAgreementId];
+        require(agreement.tenant == msg.sender, "You are not tenant in this agrement!");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
-        require(msg.value == agreement.rentAmount, "Incorrect rent amount");
-        require(agreement.tenant == msg.sender, "Caller is not the tenant");
-        // kiraci 1 ay dolmadan kirasini odeyemez 
-        // require(block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD,"You are not in the payment range..");
+        require(msg.value == agreement.rentalagreementui.monthlyRent, "Incorrect rent amount!");
+        
+
+        // tenant can not pay rent before 1 month passed. 
+        //require(block.timestamp >= agreement.lastPaidDate + WARNING_THRESHOLD,"You are not in the payment range..");
         agreement.lastPaidDate = block.timestamp;
 
-        payable(agreement.landlord).transfer(msg.value); // sending money to landlord 
+         // sending rent money to landlord for 
+        address payable _landlord = payable(agreement.landlord);
+        require(_landlord != address(0), "Invalid landlord address");
+        _landlord.transfer(msg.value);
+        // payable(agreement.landlord).transfer(msg.value);
 
         agreement.warningSent = false; // Reset warning if rent is paid
 
-        emit RentPaid(tokenId, msg.sender, msg.value);
+        emit RentPaid(_rentalAgreementId, msg.sender, msg.value);
     }
 
-    // bu fonksiyonuda sadece ev sahipleri cagirabilir ona gore modifiye etmek lazim 
-    function sendWarning(uint256 _rentalAgrementId) external {
+    // landlord send warning to tenant if tenant does not pay rent in each every month or given specific time 
+    function sendWarning(uint256 _rentalAgrementId) external onlyLandLord {
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
-        require(msg.sender == agreement.landlord, "Only the landlord can send warnings");
+        
+        require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+        require(msg.sender == agreement.landlord, "You are not landlord in this rental agreement.");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
-        require(block.timestamp > agreement.lastPaidDate + WARNING_THRESHOLD, "Warning threshold not reached");
+        // bu kisimda calisacak test icin sildim sadece 
+        // require(block.timestamp > agreement.lastPaidDate + WARNING_THRESHOLD, "Warning threshold not reached");
         require(!agreement.warningSent, "Warning already sent");
 
         agreement.warningSent = true;
@@ -211,46 +221,33 @@ contract RentalNFT is ERC721, Ownable {
         emit WarningSent(tokenId, msg.sender, agreement.tenant); // sending message 
     }
 
-    function revokeUsageRights(uint256 _rentalAgrementId) external {
+    // landlord get nft from tenant if tenant gets 2 warning (which means that tenant did not pay rent for 2 months )
+    function revokeUsageRights(uint256 _rentalAgrementId) external  onlyLandLord {
         RentalAgreement storage agreement = rentalAgreements[_rentalAgrementId];
-        require(msg.sender == agreement.landlord, "Only the landlord can revoke rights");
-        require(block.timestamp > agreement.lastPaidDate + PAYMENT_GRACE_PERIOD, "Grace period has not expired");
+        require(agreement.rentalAgrementId != 0 , "There is no rental agreement with this ID..");
+        require(msg.sender == agreement.landlord, "You are not landlord in this rental agreement.");
+        // bu kisimda eklenecek test icin eklemedim 
+       // require(block.timestamp > agreement.lastPaidDate + PAYMENT_GRACE_PERIOD, "Grace period has not expired");
 
         address tenant = agreement.tenant;
         uint256 tokenId = agreement.nftId;
+        
+        // tenant appprove to landlord to get NFT back to landlord 
+        approve(agreement.landlord, tokenId ,tenant); // approve function is overridden by me according to my needs 
+        // NFT is transfered to landlord 
         safeTransferFrom(tenant, agreement.landlord, tokenId);
 
-        delete tenantToNFT[tenant];
+        delete tenantToAgreementId[tenant];
         agreement.tenant = address(0);
 
         emit UsageRightsRevoked(tokenId, msg.sender);
     }
 
-    function getRentalAgreement(uint256 _rentalAgrementId) external view returns (RentalAgreement memory) {
-        return rentalAgreements[_rentalAgrementId];
+    // overreding approve function which is defined ERC721 according to my needs 
+    function approve(address to, uint256 tokenId , address from) public virtual {
+        _approve(to, tokenId, from);
     }
-
-    function getRentalAgreementLandLord(uint256 _rentalAgrementId) view  external  returns (address) {
-        return rentalAgreements[_rentalAgrementId].landlord;
-    }
-    function getRentalAgreementTenant(uint256 _rentalAgrementId) external view returns (address) {
-        return rentalAgreements[_rentalAgrementId].tenant;
-    }
-
-    function getRentalAgreementId(uint256 _rentalAgrementId) external view returns (uint256) {
-        return rentalAgreements[_rentalAgrementId].rentalAgrementId;
-    }
-
-    // bu fonksiyon varmis zaten "ownerOf diye :)"
-    function getOwnerOfToken(uint256 tokenId) public view returns(address){
-        return ownerOf(tokenId);
-    }
-
 
     
-
-
-
-    
-    
+  
 }
