@@ -7,19 +7,30 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 
 contract RentalNFT is ERC721, Ownable {
-    // rental agrement struct which holds all needed variables  
+   
+    // ui dan alinacak   veriler 
+     struct RentalAgreementInfoUI{
+        string tenantName;
+        string landlordName;
+        string propertyAddress;
+        uint256 monthlyRent;
+        uint256 rentIncreaseRate;
+    }
+     // rental agrement struct which holds all needed variables
     struct RentalAgreement {
         uint256 rentalAgrementId;
         address landlord;
         address tenant;
-        uint256 rentAmount;
         uint256 lastPaidDate;
         uint256 nftId;
         bool tenantAccepted;
         bool warningSent;
         uint256 warningcount; // ihtar sayisi 2 oldugunda ev sahibi kiraciya tahliye etme yetkisi verecek 
         bool isTenantNotified;
+        RentalAgreementInfoUI rentalagreementui;
     }
+
+   
 
     // creating NFT in constructor which specifies the name and symbol 
     constructor() ERC721("RentalNFT", "RENTNFT") Ownable(msg.sender) {
@@ -37,6 +48,8 @@ contract RentalNFT is ERC721, Ownable {
     mapping(address => bool) public  landlords; // holds the landlords 
     mapping(address => bool) public  tenants; // holds the landlords 
 
+   
+    
   
      
     // first landloard needs to be added to this dictionary to create rental agrement 
@@ -84,36 +97,48 @@ contract RentalNFT is ERC721, Ownable {
     }
 
     // landlord creates rental agreement 
-    function createRentalAgreement(address tenant, uint256 rentAmount) external onlyLandLord{
+    function createRentalAgreement(address tenant,
+     string memory _landlordName , string memory _tenantName, string memory _propertyAddress, uint256 _rentIncreaseRate,uint256 _monthlyRent) external onlyLandLord{
         
         require(tenant != address(0), "Invalid tenant address");
-        require(rentAmount > 0, "Rent amount must be greater than zero");
+        require(_monthlyRent > 0, "Rent amount must be greater than zero");
 
         uint256 tokenId = nextTokenId; // getting NFT id 
         nextTokenId++; // incrementing NFT id after  NFT is created 
 
         _safeMint(msg.sender, tokenId);// creating NFT and sending to msg.sender which is landlord 
 
+        RentalAgreementInfoUI memory rentalagreementui;
+        rentalagreementui = RentalAgreementInfoUI({
+            tenantName: _tenantName,
+            landlordName:_landlordName,
+            propertyAddress: _propertyAddress,
+            monthlyRent:_monthlyRent,
+            rentIncreaseRate:_rentIncreaseRate
+        });
 
         // arranging rental agrement id 
         rentalAgreements[rentalAgrementId] = RentalAgreement({
             rentalAgrementId: rentalAgrementId,
             landlord: msg.sender,
             tenant: tenant,
-            rentAmount: rentAmount,
             lastPaidDate: 0,
             nftId: tokenId,
             tenantAccepted: false,
             warningSent: false,
             warningcount:0,
-            isTenantNotified:false
+            isTenantNotified:false,
+            rentalagreementui: rentalagreementui
+
         });
+
+        
 
         // rental agrement id is incremented by 1 after each rental agrement established 
         rentalAgrementId++;
         // notify oldugunda triggerlancak 
        
-        emit RentalAgreementCreated(rentalAgrementId, msg.sender, tenant, rentAmount);
+        
         
     }
 
@@ -174,7 +199,7 @@ contract RentalNFT is ERC721, Ownable {
         RentalAgreement storage agreement = rentalAgreements[_rentalAgreementId];
         require(agreement.tenant == msg.sender, "You are not tenant in this agrement!");
         require(agreement.tenantAccepted, "Agreement not yet accepted by the tenant");
-        require(msg.value == agreement.rentAmount, "Incorrect rent amount!");
+        require(msg.value == agreement.rentalagreementui.monthlyRent, "Incorrect rent amount!");
         
 
         // tenant can not pay rent before 1 month passed. 
@@ -239,8 +264,6 @@ contract RentalNFT is ERC721, Ownable {
         // cunku bizim tenant nfti aldi ve hakkini kiraciya geri verecek eger 2 ay odemezse 
         _approve(to, tokenId, from);
     }
-
-    
 
   
 }
