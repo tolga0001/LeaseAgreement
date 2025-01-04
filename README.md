@@ -2,6 +2,8 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+# PDF Information Extraction tools on frontend side depends on NLP Server, it should be run seperately on different port and should be used as API.
+
 ## Available Scripts
 
 In the project directory, you can run:
