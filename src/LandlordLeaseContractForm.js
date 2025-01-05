@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { ethers } from 'ethers';
 import pdfToText from 'react-pdftotext';
+import { useLocation } from 'react-router-dom';
 
-const DeployLeaseContractForm = ({ signer, setContract }) => {
+const LandlordLeaseContractForm = ({landlordAddress,connectedContract,}) => {
     const [tenantName, setTenantName] = useState('');
+    const [tenantAddress, setTenantAddress] = useState('');
     const [landlordName, setLandlordName] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
     const [leaseDuration, setLeaseDuration] = useState('');
@@ -15,11 +17,16 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
     const [additionalTerms, setAdditionalTerms] = useState(''); // Existing field
     const [contactInfo, setContactInfo] = useState(''); // Existing field
     const [error, setError] = useState('');
-    const [deploymentState, setDeploymentState] = useState({ isDeployed: false, isDeploying: false });
+    const [deploymentState, setDeploymentState] = useState({isDeployed: false, isCreating: false});
     const [deployedAddress, setDeployedAddress] = useState(null);
     const [agreementSigned, setAgreementSigned] = useState(false);
     const [pdfFile, setPdfFile] = useState(null);
     const [uploadedFiles, setUploadedFiles] = useState([]); // Existing state for additional files
+    const location = useLocation();
+
+    console.log(connectedContract)
+    console.log("Landlord address: ", landlordAddress)
+
 
     const handleFileChange = async (event) => {
         const file = event.target.files[0];
@@ -57,8 +64,8 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
         try {
             const response = await fetch('http://localhost:5000/api/gpt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text}),
             });
 
             if (!response.ok) {
@@ -82,14 +89,43 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
             setError('Failed to process the lease agreement.');
         }
     };
+    const handleAddLandlord = async () => {
+        try {
+            const tx = await connectedContract.addLandLord();
+            console.log('Add Landlord Transaction Submitted:', tx.hash);
+            await tx.wait(); // Wait for the transaction to be confirmed
+            console.log('Landlord successfully added');
+        } catch (error) {
+            setError('Failed to add landlord. Please try again.');
+            console.error(error);
+        }
+    };
 
-    const handleDeploy = async () => {
+
+    const handleAgreement = async () => {
         if (!tenantName || !landlordName || !propertyAddress || !leaseDuration || !monthlyRent || !startDate || !endDate || !securityDeposit || !agreementSigned) {
-            setError('Please complete all fields and agree to the terms before deploying the contract.');
+            setError('Please complete all fields and agree to the terms before creating the agreement.');
             return;
         }
         setError('');
+        await handleAddLandlord();
+        //await handleAddTenant();
 
+        const formattedMonthlyRent = parseFloat(monthlyRent.replace(/[^\d.-]/g, '')); // Remove non-numeric characters (e.g., "TL")
+        const tx = await connectedContract.createRentalAgreement(
+            tenantAddress,
+            landlordName,
+            tenantName,
+            propertyAddress,
+            parseInt(annualRentIncrease), // Ensure rate is integer
+            ethers.utils.parseUnits(formattedMonthlyRent.toString(), 0) // Treat as Wei directly
+        );
+
+        console.log('Transaction submitted:', tx.hash);
+
+        // Wait for the transaction to be confirmed
+        await tx.wait();
+        console.log('Transaction confirmed:', tx);
     };
 
     return (
@@ -105,6 +141,16 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
                                 value={tenantName}
                                 onChange={(e) => setTenantName(e.target.value)}
                                 style={styles.input}
+                            />
+                        </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Tenant Address:</label>
+                            <input
+                                type="text"
+                                value={tenantAddress}
+                                onChange={(e) => setTenantAddress(e.target.value)}
+                                style={styles.input}
+                                placeholder="Enter tenant's Ethereum address"
                             />
                         </div>
                         <div style={styles.inputGroup}>
@@ -226,25 +272,24 @@ const DeployLeaseContractForm = ({ signer, setContract }) => {
                         </div>
                         {error && <p style={styles.error}>{error}</p>}
                         <button
-                            onClick={handleDeploy}
-                            disabled={deploymentState.isDeploying}
+                            onClick={handleAgreement}
+                            disabled={deploymentState.isCreating}
                             style={{
                                 ...styles.button,
-                                ...(deploymentState.isDeploying ? styles.buttonDisabled : {}),
+                                ...(deploymentState.isCreating ? styles.buttonDisabled : {}),
                             }}
                         >
-                            {deploymentState.isDeploying ? 'Deploying...' : 'Deploy Contract'}
+                            {deploymentState.isCreating ? 'Creating...' : 'Create Agreement'}
                         </button>
                     </>
                 ) : (
                     <div style={styles.successContainer}>
-                        <h2>Contract Deployed Successfully</h2>
-                        <p>Contract Address: {deployedAddress}</p>
+                        <h2>Agreement Created Successfully</h2>
                     </div>
                 )}
             </div>
         </div>
-    );
+    )
 };
 
 const styles = {
@@ -322,4 +367,4 @@ const styles = {
     },
 };
 
-export default DeployLeaseContractForm;
+export default LandlordLeaseContractForm;

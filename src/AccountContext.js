@@ -1,26 +1,40 @@
-import {Link, useLocation} from 'react-router-dom';
-
+import { useLocation, Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 function HomePage({ role, setRole }) {
-    const handleRoleSelection = (selectedRole) => setRole(selectedRole);
+    const location = useLocation();
+    const { connectedAccount, isConnected } = location.state || {};
 
+    useEffect(() => {
+        // Gelen bağlılık durumunu ve kullanıcı adresini logla
+        console.log('Connected Account:', connectedAccount);
+        console.log('Connection Status:', isConnected);
+    }, [connectedAccount, isConnected]);
+
+    const handleRoleSelection = (selectedRole) => setRole(selectedRole);
 
     return (
         <div style={styles.section}>
             <div>
                 <h1 style={styles.header}>Welcome to Lease Manager</h1>
-                <h2 style={styles.subHeader}>You are connected! Are you a Tenant or a Landlord?</h2>
+                <h2 style={styles.subHeader}>
+                    {isConnected
+                        ? `You are connected! Are you a Tenant or a Landlord?`
+                        : `You are not connected. Please connect your wallet.`}
+                </h2>
 
                 <div style={styles.buttonContainer}>
                     <button
                         onClick={() => handleRoleSelection('tenant')}
                         style={{ ...styles.button, backgroundColor: '#5BC0EB' }} // Blue for Tenant button
+                        disabled={!isConnected} // Bağlı değilse pasif yap
                     >
                         Tenant
                     </button>
                     <button
                         onClick={() => handleRoleSelection('landlord')}
                         style={{ ...styles.button, backgroundColor: '#FF6F61' }} // Red for Landlord button
+                        disabled={!isConnected} // Bağlı değilse pasif yap
                     >
                         Landlord
                     </button>
@@ -37,13 +51,26 @@ function HomePage({ role, setRole }) {
                                     Deploy Lease Contract
                                 </button>
                             </Link>
-                            <Link to="/leaseContractConnectForm">
+                            <Link to="/tenant/leaseContractConnectForm" state={{ setRole }}>
                                 <button style={styles.tenantActionButton}>
                                     Connect to Existing Lease Contract
                                 </button>
                             </Link>
-
-
+                            <Link to="/tenant/leaseContractForm" state={{ role }}>
+                                <button style={styles.tenantActionButton}>
+                                    Create Lease Contract Form
+                                </button>
+                            </Link>
+                            {/* Pay Rent Button */}
+                            <button
+                                style={{
+                                    ...styles.tenantActionButton,
+                                    backgroundColor: isConnected ? '#28a745' : '#999', // Renk bağlılık durumuna göre değişir
+                                }}
+                                disabled={!isConnected} // Bağlı değilse pasif yap
+                            >
+                                Pay Rent
+                            </button>
                         </div>
                     </div>
                 )}
@@ -59,10 +86,16 @@ function HomePage({ role, setRole }) {
                                     Deploy Lease Contract
                                 </button>
                             </Link>
-                            <Link to="/leaseContractConnectForm">
-                                <button style={styles.landlordActionButton}>Connect to Existing Lease Contract</button>
+                            <Link to="/landlord/leaseContractConnectForm">
+                                <button style={styles.landlordActionButton}>
+                                    Connect to Existing Lease Contract
+                                </button>
                             </Link>
-
+                            <Link to="/landlord/leaseContractForm">
+                                <button style={styles.landlordActionButton}>
+                                    Create A Lease Contract
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 )}

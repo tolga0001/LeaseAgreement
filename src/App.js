@@ -14,10 +14,10 @@ function App() {
     // state variables
     const [account, setAccount] = useState("");
     const [isConnected, setIsConnected] = useState(false);
-    const [contract, setContract] = useState(null);
     const [provider, setProvider] = useState(null);
     const [signer, setSigner] = useState(null);
     const [role, setRole] = useState(null); // To handle user role (tenant or landlord)
+    const [connectedContract,setConnectedContract] = useState(null);
 
 
 
@@ -55,24 +55,22 @@ function App() {
                         signer={signer}
                     />}
                 />
+                <Route
+                    path="/leaseContractConnectForm"
+                    element={<ConnectLeaseContractForm signer={signer} provider={provider} setconnectedContract={setConnectedContract} role={role} />}
+                />
 
 
                 <Route
                     path="/tenant/leaseContractForm"
-                    element={<TenantLeaseContractForm signer={signer} contract={contract} setContract={setContract} />}
+                    element={<TenantLeaseContractForm connectedContract = {connectedContract} />}
                 />
-                <Route
-                    path="/tenant/leaseContractConnectForm"
-                    element={<ConnectLeaseContractForm signer={signer} provider={provider} />}
-                />
+
                 <Route
                     path="/landlord/leaseContractForm"
-                    element={<LandlordLeaseContractForm signer={signer} provider={provider} />}
+                    element={<LandlordLeaseContractForm landlordAddress={account} connectedContract={connectedContract} />}
                 />
-                <Route
-                    path="/landlord/leaseContractConnectForm"
-                    element={<ConnectLeaseContractForm signer={signer} provider={provider} />}
-                />
+
             </Routes>
 
         </Router>

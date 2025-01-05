@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 
 
-const TenantLeaseContractForm = ({ signer, setContract }) => {
+const TenantLeaseContractForm = ({connectedContract }) => {
     const [tenantName, setTenantName] = useState('');
     const [landlordName, setLandlordName] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
