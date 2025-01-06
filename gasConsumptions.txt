@@ -1,0 +1,38 @@
+
+
+
+
+addLandlord() :  Gas Limit & Usage by Txn: 43,948 | 43,571 (99.14%)
+
+
+
+
+
+createRentalAgreement():  Gas Limit & Usage by Txn: 305,290 | 301,728 (98.83%)
+
+
+addTenant():  Gas Limit & Usage by Txn: 43,971 | 43,594 (99.14%)
+
+
+
+notifyTenant(): Gas Limit & Usage by Txn: 50,883 | 50,492 (99.23%)
+
+
+sendWarning(): Gas Limit & Usage by Txn: 93,139 | 92,190 (98.98%)
+
+ 
+acceptRentalAgreement():  Gas Limit & Usage by Txn: 188,287 | 162,038 (86.06%)
+
+
+refuseRentalAgreement(): Gas Limit & Usage by Txn: 70,997 | 70,136 (98.79%)
+
+
+
+payRent(): Gas Limit & Usage by Txn: 57,624 | 56,816 (98.6%)
+
+
+ 
+revokeUsageRıgths(): Gas Limit & Usage by Txn: 108,932 | 86,472 (79.38%)
+
+
+
