@@ -39,9 +39,9 @@ contract RentalNFT is ERC721, Ownable {
 
     }
 
-    uint256 public constant WARNING_THRESHOLD = 60 seconds; // 1 month
+    uint256 public constant WARNING_THRESHOLD = 45 seconds; // 1 month
     // kirayi max ne kadar sure gectiktan sonra odeyebilir 
-    uint256 public constant paymentRange = 30 seconds;
+    uint256 public constant paymentRange = 60 seconds;
     uint256 public nextTokenId = 1; // specify id of the NFT to be created (Bunu bu arada istedigimiz degerden baslatabiliriz herhangi bir sorun yok)
     uint256 public rentalAgrementId = 1; // it starts from 1 and Incremented  when new agrement is created.
 
@@ -50,18 +50,6 @@ contract RentalNFT is ERC721, Ownable {
     mapping(address => bool) public  landlords; // holds the landlords 
     mapping(address => bool) public  tenants; // holds the landlords 
 
-
-     
-    // first landloard needs to be added to this dictionary to create rental agrement 
-    function addLandLord() public  {
-        landlords[msg.sender] = true;
-    }
-
-    // tenants is added to tenants map (butona bastiginda tetiklenecek)
-    function addTenant() public {
-        tenants[msg.sender] = true;
-    }
-    
     event RentalAgreementCreated(
         uint256 indexed nftId,
         address indexed landlord,
@@ -89,6 +77,16 @@ contract RentalNFT is ERC721, Ownable {
         _;
     }
 
+    // first landloard needs to be added to this dictionary to create rental agrement 
+    function addLandLord() public  {
+        landlords[msg.sender] = true;
+    }
+
+    // tenants is added to tenants map (butona bastiginda tetiklenecek)
+    function addTenant() public {
+        tenants[msg.sender] = true;
+    }
+    
     // landlord creates rental agreement 
     function createRentalAgreement(address tenant,
      string memory _landlordName , string memory _tenantName, string memory _propertyAddress,
