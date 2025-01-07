@@ -2,13 +2,13 @@
 import './App.css';
 import { useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-
 import TenantLeaseContractForm from "./TenantLeaseContractForm";
 import ConnectLeaseContractForm from "./ConnectLeaseContractForm";
 import HomePage from './HomePage';
 import MetaMaskConnectPage from "./MetaMaskConnectPage";
 import LandlordLeaseContractForm from "./LandlordLeaseContractForm";
-import DeployContract from "./DeployContract"; // Anasayfa bileşeni
+import DeployContract from "./DeployContract";
+import Notifications from "./Notifications"; // Anasayfa bileşeni
 
 function App() {
     // state variables
@@ -22,58 +22,58 @@ function App() {
 
 
     return (
-        <Router>
-            {/* Route for the Lease Agreement Contract title and MetaMask connection */}
+            <Router>
+                {/* Route for the Lease Agreement Contract title and MetaMask connection */}
 
-            {/* Route to the Home Page */}
-            <Routes>
-                <Route
-                    path="/"
-                    element={
-                        <MetaMaskConnectPage
+                {/* Route to the Home Page */}
+                <Routes>
+                    <Route
+                        path="/"
+                        element={
+                            <MetaMaskConnectPage
+                                isConnected={isConnected}
+                                account={account}
+                                setIsConnected={setIsConnected}
+                                setAccount={setAccount}
+                                setProvider={setProvider}
+                                setSigner={setSigner}
+                            />
+                        }
+                    />
+
+                    <Route
+                        path="/home"
+                        element={<HomePage
                             isConnected={isConnected}
-                            account={account}
-                            setIsConnected={setIsConnected}
-                            setAccount={setAccount}
-                            setProvider={setProvider}
-                            setSigner={setSigner}
-                        />
-                    }
-                />
+                            role={role}
+                            setRole={setRole}
+                        />}
+                    />
+                    <Route
+                        path="/deployContract"
+                        element={<DeployContract
+                            signer={signer}
+                        />}
+                    />
+                    <Route
+                        path="/leaseContractConnectForm"
+                        element={<ConnectLeaseContractForm account={account} signer={signer} provider={provider} setconnectedContract={setConnectedContract} role={role} />}
+                    />
+                    <Route
+                        path="/tenant/notifications"
+                        element={<Notifications connectedContract = {connectedContract} />}
+                    />
 
-                <Route
-                    path="/home"
-                    element={<HomePage
-                        isConnected={isConnected}
-                        role={role}
-                        setRole={setRole}
-                    />}
-                />
-                <Route
-                    path="/deployContract"
-                    element={<DeployContract
-                        signer={signer}
-                    />}
-                />
-                <Route
-                    path="/leaseContractConnectForm"
-                    element={<ConnectLeaseContractForm signer={signer} provider={provider} setconnectedContract={setConnectedContract} role={role} />}
-                />
+                    <Route
+                        path="/landlord/leaseContractForm"
+                        element={<LandlordLeaseContractForm landlordAddress={account} connectedContract={connectedContract} />}
+                    />
+
+                </Routes>
+
+            </Router>
 
 
-                <Route
-                    path="/tenant/leaseContractForm"
-                    element={<TenantLeaseContractForm connectedContract = {connectedContract} />}
-                />
-
-                <Route
-                    path="/landlord/leaseContractForm"
-                    element={<LandlordLeaseContractForm landlordAddress={account} connectedContract={connectedContract} />}
-                />
-
-            </Routes>
-
-        </Router>
     );
 }
 export default App;

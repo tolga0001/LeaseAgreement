@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import { Contract, ethers } from "ethers";
 import { useNavigate } from "react-router-dom";
 
-const ConnectLeaseContractForm = ({
+const ConnectLeaseContractForm = ({ account ,
                                       signer,
                                       provider,
                                       setconnectedContract,
@@ -13,21 +13,31 @@ const ConnectLeaseContractForm = ({
     const [view, setView] = useState("");
     const [owner, setOwner] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const navigate = useNavigate();
     const [connectedContract, setContract] = useState(null);
     const [agreementAcceptId, setAcceptAgreementId] = useState("");
     const [agreementRefuseId, setRefuseAgreementId] = useState("");
     const [agreementWarningId, setWarningAgreementId] = useState("");
     const [agreementEvacuationId, setEvacuationAgreementId] = useState("");
+    const [notifyTenantAgreementId, setNotifyTenantAgreementId] = useState("");
     const [rentAmount, setRentAmount] = useState("");
+    const [agreements, setAgreements] = useState([]); // agreements state
+
+
+
 
     // Validation for required fields
     const validateFields = () => {
         if (!contractAddress.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Deployed Contract Address is required.");
             return false;
         }
         if (!leaseContractABI.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Deployed Contract ABI (JSON) is required.");
             return false;
         }
@@ -56,18 +66,52 @@ const ConnectLeaseContractForm = ({
             }
 
             const contractOwner = await contract.owner();
+            // rentalAgreements dizisinin 0. index'ini alıyoruz
+            const length = await contract.rentalAgrementId();
+            console.log("rental agreement id: "+ length)
+            const rentalAgreement = await contract.rentalAgreements(0);
+            console.log("rental agreement 0: "+ rentalAgreement)
+            const rentalAgreement1 = await contract.rentalAgreements(1);
+            console.log("rental agreement 1: "+ rentalAgreement1)
+            const rentalAgreement2 = await contract.rentalAgreements(2);
+            console.log("rental agreement 2: "+ rentalAgreement2)
+
+
+           // Verileri alıp listeye ekleme
+            for (let i = 0; i < length; i++) {
+                const agreement = await contract.rentalAgreements(i);
+                const agreementData = {
+                    agreementId: agreement?.rentalAgrementId?.toString() || "N/A",
+                    landlord: agreement?.landlord || "N/A",
+                    tenant: agreement?.tenant || "N/A",
+                    rentalAgreementUI: {
+                        tenantName: agreement?.rentalagreementui?.tenantName || "N/A",
+                        landlordName: agreement?.rentalagreementui?.landlordName || "N/A",
+                        propertyAddress: agreement?.rentalagreementui?.propertyAddress || "N/A",
+                        monthlyRent: agreement?.rentalagreementui?.monthlyRent?.toString() || "0",
+                        rentIncreaseRate: agreement?.rentalagreementui?.rentIncreaseRate?.toString() || "0",
+                    },
+                };
+
+                setAgreements(prevAgreements => [...prevAgreements, agreementData]);
+            }
             setOwner(contractOwner);
             setView("connected");
+            setSuccessMessage("Connected successfully.");
         } catch (error) {
             const errorMessage = error.message;
 
             // Extract the part starting from "reverted:" in the error message
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             if (revertedMessageMatch && revertedMessageMatch[1]) {
-                setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
+                // clear success message
+                setSuccessMessage("")
+                setErrorMessage(`Failed to connect to  contract: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
-                setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+                setErrorMessage(`Failed to connect to  contract: ${errorMessage}`);
             }
         }
     };
@@ -79,6 +123,8 @@ const ConnectLeaseContractForm = ({
             setAcceptAgreementId(value);
             setErrorMessage("");
         } else {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Agreement ID must only contain numbers.");
         }
     };
@@ -90,6 +136,8 @@ const ConnectLeaseContractForm = ({
             setRefuseAgreementId(value);
             setErrorMessage("");
         } else {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Agreement ID must only contain numbers.");
         }
     };
@@ -99,6 +147,8 @@ const ConnectLeaseContractForm = ({
             setWarningAgreementId(value);
             setErrorMessage("");
         } else {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Agreement ID must only contain numbers.");
         }
     }
@@ -108,9 +158,23 @@ const ConnectLeaseContractForm = ({
             setEvacuationAgreementId(value);
             setErrorMessage("");
         } else {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Agreement ID must only contain numbers.");
         }
     }
+    const   handleNotifyTenantAgreementIdChange = (e) => {
+        const value = e.target.value.trim();
+        if (/^\d*$/.test(value)) {
+            setNotifyTenantAgreementId(value);
+            setErrorMessage("");
+        } else {
+            // clear success message
+            setSuccessMessage("")
+            setErrorMessage("Agreement ID must only contain numbers.");
+        }
+    }
+
 
     // Handle valid Rent Amount input
     const handleRentAmountChange = (e) => {
@@ -120,6 +184,8 @@ const ConnectLeaseContractForm = ({
             setRentAmount(value);
             setErrorMessage("");
         } else {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Rent amount must be a valid number.");
         }
     };
@@ -127,6 +193,8 @@ const ConnectLeaseContractForm = ({
     // Function to handle sending a warning to the tenant
     const handleSendWarning = async () => {
         if (!agreementWarningId.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage('Please provide a valid Agreement ID.');
             return;
         }
@@ -138,16 +206,21 @@ const ConnectLeaseContractForm = ({
 
             await tx.wait(); // Wait for the transaction to confirm
             console.log('Warning successfully sent.');
+            setSuccessMessage('Warning successfully sent.')
         } catch (error) {
             const errorMessage = error.message;
 
             // Extract the part starting from "reverted:" in the error message
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             if (revertedMessageMatch && revertedMessageMatch[1]) {
-                setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
+                // clear success message
+                setSuccessMessage("")
+                setErrorMessage(`Failed to send warning: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
-                setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+                setErrorMessage(`Failed to send warning: ${errorMessage}`);
             }
         }
     };
@@ -156,16 +229,17 @@ const ConnectLeaseContractForm = ({
     // Accept Agreement
     const handleAcceptAgreement = async () => {
         if (!agreementAcceptId.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Please enter a valid Agreement ID.");
             return;
         }
 
         try {
-            const tx = await connectedContract.acceptRentalAgreement(agreementAcceptId, {
-                value: ethers.utils.parseEther("0.1"),
-            });
+            const tx = await connectedContract.acceptRentalAgreement(agreementWarningId); // Transact with smart contract
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Successfully accepted agreement.");
         } catch (error) {
             const errorMessage = error.message;
 
@@ -173,10 +247,45 @@ const ConnectLeaseContractForm = ({
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             console.log(revertedMessageMatch)
             if (revertedMessageMatch && revertedMessageMatch[1]) {
+                // clear success message
+                setSuccessMessage("")
                 setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
                 setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+            }
+        }
+    };
+    const handleNotifyTenant = async () => {
+        if (!notifyTenantAgreementId.trim()) {
+            // clear success message
+            setSuccessMessage("")
+            setErrorMessage("Please enter a valid Agreement ID.");
+            return;
+        }
+
+        try {
+            const tx = await connectedContract.notifyTenant(notifyTenantAgreementId); // Transact with smart contract
+            await tx.wait();
+            setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Successfully the tenant got notified.");
+        } catch (error) {
+            const errorMessage = error.message;
+
+            // Extract the part starting from "reverted:" in the error message
+            const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
+            console.log(revertedMessageMatch)
+            if (revertedMessageMatch && revertedMessageMatch[1]) {
+                // clear success message
+                setSuccessMessage("")
+                setErrorMessage(`Failed to notify tenant: ${revertedMessageMatch[1]}`);
+            } else {
+                // clear success message
+                setSuccessMessage("")
+                // Fallback to show the full error message if the pattern isn't found
+                setErrorMessage(`Failed to notify tenant: ${errorMessage}`);
             }
         }
     };
@@ -184,6 +293,8 @@ const ConnectLeaseContractForm = ({
     // Refuse Agreement
     const handleRefuseAgreement = async () => {
         if (!agreementRefuseId.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Please enter a valid Agreement ID.");
             return;
         }
@@ -194,6 +305,7 @@ const ConnectLeaseContractForm = ({
             );
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Successfully refused agreement.");
         } catch (error) {
             const errorMessage = error.message;
 
@@ -201,8 +313,12 @@ const ConnectLeaseContractForm = ({
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             console.log(revertedMessageMatch)
             if (revertedMessageMatch && revertedMessageMatch[1]) {
+                // clear success message
+                setSuccessMessage("")
                 setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
                 setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
             }
@@ -211,6 +327,8 @@ const ConnectLeaseContractForm = ({
     // Refuse Agreement
     const handleEvacuation = async () => {
         if (!agreementEvacuationId.trim()) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Please enter a valid Agreement ID.");
             return;
         }
@@ -221,6 +339,7 @@ const ConnectLeaseContractForm = ({
             );
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Evacuation process has successfully started.");
         } catch (error) {
             const errorMessage = error.message;
 
@@ -228,8 +347,12 @@ const ConnectLeaseContractForm = ({
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             console.log(revertedMessageMatch)
             if (revertedMessageMatch && revertedMessageMatch[1]) {
+                // clear success message
+                setSuccessMessage("")
                 setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
                 setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
             }
@@ -239,6 +362,8 @@ const ConnectLeaseContractForm = ({
     // Pay Rent (Dynamic)
     const handlePayRent = async () => {
         if (!rentAmount.trim() || isNaN(rentAmount) || Number(rentAmount) <= 0) {
+            // clear success message
+            setSuccessMessage("")
             setErrorMessage("Please enter a valid rent amount greater than 0.");
             return;
         }
@@ -249,6 +374,7 @@ const ConnectLeaseContractForm = ({
             });
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Successfully revoked agreement.");
         } catch (error) {
             const errorMessage = error.message;
 
@@ -256,10 +382,15 @@ const ConnectLeaseContractForm = ({
             const revertedMessageMatch = errorMessage.match(/reverted: (.+?)["\n]/);
             console.log(revertedMessageMatch)
             if (revertedMessageMatch && revertedMessageMatch[1]) {
+                // clear success message
+                setSuccessMessage("")
                 setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
             } else {
+                // clear success message
+                setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
                 setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+
             }
         }
     };
@@ -271,12 +402,20 @@ const ConnectLeaseContractForm = ({
             console.log("Tenant added transaction: ", tx.hash);
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
+            setSuccessMessage("Successfully added tenant.");
         } catch (error) {
             console.error("Failed to add tenant: ", error);
+            //clear the success message
+            setSuccessMessage("")
             setErrorMessage("Failed to add Tenant. Please try again.");
         }
     };
-
+    const handleOpenNotifications = () => {
+        // agreements verisini localStorage'a kaydediyoruz
+        localStorage.setItem('account', account);
+        localStorage.setItem('agreements', JSON.stringify(agreements));
+        window.open('/tenant/notifications', '_blank');
+    };
     return (
         <div style={styles.container}>
             <div style={styles.form}>
@@ -314,6 +453,7 @@ const ConnectLeaseContractForm = ({
                 </div>
 
                 {errorMessage && <p style={styles.errorMessage}>{errorMessage}</p>}
+                {successMessage && <p style={styles.successMessage}>{errorMessage}</p>}
             </div>
 
             {view === "connected" && (
@@ -336,13 +476,29 @@ const ConnectLeaseContractForm = ({
                                         borderRadius: "5px",
                                         cursor: "pointer",
                                     }}
+                                    onClick={handleOpenNotifications}
+                                >
+                                   Show Notifications
+                                </button>
+                            </div>
+                            <div style={{marginTop: "15px", display: "flex", justifyContent: "center"}}>
+                                {/* Add Tenant */}
+                                <button
+                                    style={{
+                                        backgroundColor: "#007bff",
+                                        color: "#fff",
+                                        padding: "10px 20px",
+                                        border: "none",
+                                        borderRadius: "5px",
+                                        cursor: "pointer",
+                                    }}
                                     onClick={handleAddTenant}
                                 >
                                     Add Tenant
                                 </button>
                             </div>
                             <div style={{marginTop: "20px"}}>
-                            {/* Accept Agreement */}
+                                {/* Accept Agreement */}
                                 <input
                                     type="text"
                                     placeholder="Enter Agreement ID"
@@ -412,7 +568,9 @@ const ConnectLeaseContractForm = ({
                     )}
 
                     {role === "landlord" && (
+
                         <div>
+                            {/* Create Agreement */}
                             <button
                                 style={{
                                     ...styles.button,
@@ -424,7 +582,29 @@ const ConnectLeaseContractForm = ({
                                 Create Agreement
                             </button>
                             <div style={{marginTop: "20px"}}>
-                                {/* Accept Agreement */}
+                                {/* handleNotifyTenant */}
+                                <input
+                                    type="text"
+                                    placeholder="Enter Agreement ID"
+                                    value={notifyTenantAgreementId}
+                                    onChange={handleNotifyTenantAgreementIdChange}
+                                    style={{
+                                        marginRight: "10px",
+                                        padding: "5px",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "5px",
+                                    }}
+                                />
+                                <button
+                                    style={{backgroundColor: "green", ...styles.button}}
+                                    onClick={handleNotifyTenant}
+                                >
+                                    Notify Tenant
+                                </button>
+                            </div>
+
+                            <div style={{marginTop: "20px"}}>
+                                {/* Send Warning */}
                                 <input
                                     type="text"
                                     placeholder="Enter Agreement ID"
@@ -445,7 +625,7 @@ const ConnectLeaseContractForm = ({
                                 </button>
                             </div>
                             <div style={{marginTop: "20px"}}>
-                                {/* Accept Agreement */}
+                                {/* Start Evacuation */}
                                 <input
                                     type="text"
                                     placeholder="Enter Agreement ID"
@@ -516,7 +696,8 @@ const styles = {
         borderRadius: "5px",
     },
     buttonWrapper: {
-        marginTop: "15px",
+        marginTop: "20px",
+
     },
     button: {
         padding: "10px 20px",
