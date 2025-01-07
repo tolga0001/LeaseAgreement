@@ -236,7 +236,7 @@ const ConnectLeaseContractForm = ({ account ,
         }
 
         try {
-            const tx = await connectedContract.acceptRentalAgreement(agreementWarningId); // Transact with smart contract
+            const tx = await connectedContract.acceptRentalAgreement(agreementAcceptId); // Transact with smart contract
             await tx.wait();
             setErrorMessage(""); // Clear error message on success
             setSuccessMessage("Successfully accepted agreement.");
@@ -315,12 +315,12 @@ const ConnectLeaseContractForm = ({ account ,
             if (revertedMessageMatch && revertedMessageMatch[1]) {
                 // clear success message
                 setSuccessMessage("")
-                setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
+                setErrorMessage(`Failed to refuse agreement: ${revertedMessageMatch[1]}`);
             } else {
                 // clear success message
                 setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
-                setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+                setErrorMessage(`Failed to refuse agreement: ${errorMessage}`);
             }
         }
     };
@@ -349,12 +349,12 @@ const ConnectLeaseContractForm = ({ account ,
             if (revertedMessageMatch && revertedMessageMatch[1]) {
                 // clear success message
                 setSuccessMessage("")
-                setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
+                setErrorMessage(`Failed to handle evacuation: ${revertedMessageMatch[1]}`);
             } else {
                 // clear success message
                 setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
-                setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+                setErrorMessage(`Failed to handle evacuation: ${errorMessage}`);
             }
         }
     };
@@ -384,12 +384,12 @@ const ConnectLeaseContractForm = ({ account ,
             if (revertedMessageMatch && revertedMessageMatch[1]) {
                 // clear success message
                 setSuccessMessage("")
-                setErrorMessage(`Failed to accept agreement: ${revertedMessageMatch[1]}`);
+                setErrorMessage(`Failed to pay rent: ${revertedMessageMatch[1]}`);
             } else {
                 // clear success message
                 setSuccessMessage("")
                 // Fallback to show the full error message if the pattern isn't found
-                setErrorMessage(`Failed to accept agreement: ${errorMessage}`);
+                setErrorMessage(`Failed to pay rent: ${errorMessage}`);
 
             }
         }
